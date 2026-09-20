@@ -47,3 +47,22 @@ jobs:
       - name: Push Docker Image
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+            docker pull ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
+
+            docker stop secure-cicd-flask || true
+            docker rm secure-cicd-flask || true
+
+            docker run -d \
+              --name secure-cicd-flask \
+              -p 5000:5000 \
+              ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
