@@ -24,18 +24,44 @@ jobs:
         with:
           python-version: "3.12"
 
+      # -----------------------------
+      # START MEASUREMENT
+      # -----------------------------
+      - name: Start Measurement
+        run: |
+          mkdir -p measurements
+          date +%s.%N > measurements/start_time
+
       - name: Install Dependencies
         run: |
+          START=$(date +%s.%N)
+
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+          END=$(date +%s.%N)
+          echo "$START" > measurements/install_start
+          echo "$END" > measurements/install_end
+
       - name: Run Unit Tests
         run: |
+          START=$(date +%s.%N)
+
           pytest
+
+          END=$(date +%s.%N)
+          echo "$START" > measurements/test_start
+          echo "$END" > measurements/test_end
 
       - name: Build Docker Image
         run: |
+          START=$(date +%s.%N)
+
           docker build -t ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline .
+
+          END=$(date +%s.%N)
+          echo "$START" > measurements/docker_build_start
+          echo "$END" > measurements/docker_build_end
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -46,7 +72,13 @@ jobs:
 
       - name: Push Docker Image
         run: |
+          START=$(date +%s.%N)
+
           docker push ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
+
+          END=$(date +%s.%N)
+          echo "$START" > measurements/ghcr_push_start
+          echo "$END" > measurements/ghcr_push_end
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.2
@@ -66,3 +98,66 @@ jobs:
               --name secure-cicd-flask \
               -p 5000:5000 \
               ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
+
+      - name: Record Deployment Time
+        run: |
+          echo "Deployment completed successfully."
+
+      # -----------------------------
+      # CREATE RESEARCH RESULT
+      # -----------------------------
+      - name: Calculate C0 Results
+        run: |
+          python - <<'PY'
+          import json
+          import time
+
+          def duration(start_file, end_file):
+              with open(start_file) as f:
+                  start = float(f.read().strip())
+
+              with open(end_file) as f:
+                  end = float(f.read().strip())
+
+              return round(end - start, 3)
+
+          with open("measurements/start_time") as f:
+              pipeline_start = float(f.read().strip())
+
+          pipeline_end = time.time()
+
+          results = {
+              "configuration": "C0",
+              "install_time": duration(
+                  "measurements/install_start",
+                  "measurements/install_end"
+              ),
+              "test_time": duration(
+                  "measurements/test_start",
+                  "measurements/test_end"
+              ),
+              "docker_build_time": duration(
+                  "measurements/docker_build_start",
+                  "measurements/docker_build_end"
+              ),
+              "ghcr_push_time": duration(
+                  "measurements/ghcr_push_start",
+                  "measurements/ghcr_push_end"
+              ),
+              "total_pipeline_time": round(
+                  pipeline_end - pipeline_start, 3
+              ),
+              "status": "success"
+          }
+
+          with open("c0_results.json", "w") as f:
+              json.dump(results, f, indent=2)
+
+          print(json.dumps(results, indent=2))
+          PY
+
+      - name: Upload C0 Measurement Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: c0-measurement-results
+          path: c0_results.json
