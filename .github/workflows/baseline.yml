@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@v6
 
@@ -25,7 +26,7 @@ jobs:
           python-version: "3.12"
 
       # ==========================================
-      # C0 MEASUREMENT START
+      # START TOTAL C0 MEASUREMENT
       # ==========================================
       - name: Start C0 Measurement
         run: |
@@ -87,7 +88,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ==========================================
-      # GHCR PUSH
+      # PUSH IMAGE TO GHCR
       # ==========================================
       - name: Push Docker Image
         run: |
@@ -102,82 +103,80 @@ jobs:
           echo "$END" > measurements/push_end
 
       # ==========================================
-      # EC2 DEPLOYMENT
+      # DEPLOY TO EC2
       # ==========================================
       - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+            docker pull ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
+
+            docker stop secure-cicd-flask || true
+            docker rm secure-cicd-flask || true
+
+            docker run -d \
+              --name secure-cicd-flask \
+              -p 5000:5000 \
+              ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
+
+      # ==========================================
+      # END TOTAL MEASUREMENT
+      # ==========================================
+      - name: End C0 Measurement
         run: |
-          START=$(date +%s.%N)
-
-          ssh -o StrictHostKeyChecking=no \
-              -i "$HOME/.ssh/github-actions-cicd" \
-              "${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}" << 'EOF'
-
-          echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io \
-            -u "${{ secrets.GHCR_USERNAME }}" \
-            --password-stdin
-
-          docker pull \
-            ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
-
-          docker stop secure-cicd-flask || true
-          docker rm secure-cicd-flask || true
-
-          docker run -d \
-            --name secure-cicd-flask \
-            -p 5000:5000 \
-            ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
-
-          EOF
-
-          END=$(date +%s.%N)
-
-          echo "$START" > measurements/deploy_start
-          echo "$END" > measurements/deploy_end
+          date +%s.%N > measurements/pipeline_end
 
       # ==========================================
-      # CREATE C0 RESULT
+      # CREATE C0 RESULTS
       # ==========================================
-      - name: Create C0 Measurement Result
+      - name: Calculate C0 Results
         run: |
           python - <<'PY'
           import json
-          import time
 
-          def read_time(filename):
-              with open(filename) as f:
+          def read_time(file):
+              with open(file) as f:
                   return float(f.read().strip())
 
-          def duration(start, end):
-              return round(read_time(start) - read_time(end), 3)
-
-          pipeline_start = read_time("measurements/pipeline_start")
-          pipeline_end = time.time()
+          def calc(start, end):
+              return round(
+                  read_time(end) - read_time(start),
+                  3
+              )
 
           results = {
               "configuration": "C0",
-              "install_time_seconds": round(
-                  read_time("measurements/install_end")
-                  - read_time("measurements/install_start"), 3
+
+              "install_time_seconds": calc(
+                  "measurements/install_start",
+                  "measurements/install_end"
               ),
-              "unit_test_time_seconds": round(
-                  read_time("measurements/test_end")
-                  - read_time("measurements/test_start"), 3
+
+              "unit_test_time_seconds": calc(
+                  "measurements/test_start",
+                  "measurements/test_end"
               ),
-              "docker_build_time_seconds": round(
-                  read_time("measurements/docker_end")
-                  - read_time("measurements/docker_start"), 3
+
+              "docker_build_time_seconds": calc(
+                  "measurements/docker_start",
+                  "measurements/docker_end"
               ),
-              "ghcr_push_time_seconds": round(
-                  read_time("measurements/push_end")
-                  - read_time("measurements/push_start"), 3
+
+              "ghcr_push_time_seconds": calc(
+                  "measurements/push_start",
+                  "measurements/push_end"
               ),
-              "ec2_deployment_time_seconds": round(
-                  read_time("measurements/deploy_end")
-                  - read_time("measurements/deploy_start"), 3
+
+              "total_pipeline_time_seconds": calc(
+                  "measurements/pipeline_start",
+                  "measurements/pipeline_end"
               ),
-              "total_pipeline_time_seconds": round(
-                  pipeline_end - pipeline_start, 3
-              ),
+
               "status": "success"
           }
 
@@ -192,27 +191,18 @@ jobs:
           print(f"Unit Tests           : {results['unit_test_time_seconds']} seconds")
           print(f"Docker Build         : {results['docker_build_time_seconds']} seconds")
           print(f"GHCR Push            : {results['ghcr_push_time_seconds']} seconds")
-          print(f"EC2 Deployment       : {results['ec2_deployment_time_seconds']} seconds")
           print("------------------------------------------")
           print(f"TOTAL PIPELINE       : {results['total_pipeline_time_seconds']} seconds")
           print(f"STATUS               : {results['status']}")
           print("==========================================")
           print("")
+
+          print("JSON RESULT:")
+          print(json.dumps(results, indent=2))
           PY
 
       # ==========================================
-      # SHOW C0 RESULT IN GITHUB ACTIONS
-      # ==========================================
-      - name: Display C0 Measurement
-        run: |
-          echo "=========================================="
-          echo "           C0 BASELINE RESULT"
-          echo "=========================================="
-          cat c0_results.json
-          echo "=========================================="
-
-      # ==========================================
-      # SAVE C0 RESULT AS ARTIFACT
+      # UPLOAD C0 RESULT
       # ==========================================
       - name: Upload C0 Measurement
         uses: actions/upload-artifact@v4
