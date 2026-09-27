@@ -162,7 +162,38 @@ jobs:
           print("================================================")
           print("")
           PY
-- name: Display C0 Baseline Measurements
+      # ==========================================
+      # DISPLAY C0 MEASUREMENTS
+      # ==========================================
+      - name: Display C0 Baseline Measurements
+        run: |
+          python - <<'PY'
+          import time
+
+          def read(file):
+              with open(file) as f:
+                  return float(f.read().strip())
+
+          install_time = read("/tmp/c0_install_end") - read("/tmp/c0_install_start")
+          test_time = read("/tmp/c0_test_end") - read("/tmp/c0_test_start")
+          docker_time = read("/tmp/c0_docker_end") - read("/tmp/c0_docker_start")
+          push_time = read("/tmp/c0_push_end") - read("/tmp/c0_push_start")
+          total_time = read("/tmp/c0_pipeline_end") - read("/tmp/c0_pipeline_start")
+
+          print("")
+          print("================================================")
+          print("        C0 BASELINE CI/CD MEASUREMENTS")
+          print("================================================")
+          print(f"Install Dependencies : {install_time:.3f} seconds")
+          print(f"Unit Tests           : {test_time:.3f} seconds")
+          print(f"Docker Build         : {docker_time:.3f} seconds")
+          print(f"GHCR Push            : {push_time:.3f} seconds")
+          print(f"Total Pipeline Time  : {total_time:.3f} seconds")
+          print("Status               : SUCCESS")
+          print("================================================")
+          print("")
+          PY
+
       # ==========================================
       # CREATE C0 MEASUREMENT DATA
       # ==========================================
