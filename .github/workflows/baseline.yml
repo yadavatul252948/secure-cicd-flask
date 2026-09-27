@@ -162,3 +162,50 @@ jobs:
           print("================================================")
           print("")
           PY
+- name: Display C0 Baseline Measurements
+      # ==========================================
+      # CREATE C0 MEASUREMENT DATA
+      # ==========================================
+      - name: Create C0 Measurement Data
+        run: |
+          python - <<'PY'
+          import json
+
+          def read(file):
+              with open(file) as f:
+                  return float(f.read().strip())
+
+          install_time = read("/tmp/c0_install_end") - read("/tmp/c0_install_start")
+          test_time = read("/tmp/c0_test_end") - read("/tmp/c0_test_start")
+          docker_time = read("/tmp/c0_docker_end") - read("/tmp/c0_docker_start")
+          push_time = read("/tmp/c0_push_end") - read("/tmp/c0_push_start")
+          total_time = read("/tmp/c0_pipeline_end") - read("/tmp/c0_pipeline_start")
+
+          results = {
+              "configuration": "C0",
+              "install_time_seconds": round(install_time, 3),
+              "unit_test_time_seconds": round(test_time, 3),
+              "docker_build_time_seconds": round(docker_time, 3),
+              "ghcr_push_time_seconds": round(push_time, 3),
+              "total_pipeline_time_seconds": round(total_time, 3),
+              "status": "SUCCESS"
+          }
+
+          with open("c0_results.json", "w") as f:
+              json.dump(results, f, indent=2)
+
+          print("==========================================")
+          print("       C0 BASELINE MEASUREMENTS")
+          print("==========================================")
+          print(json.dumps(results, indent=2))
+          print("==========================================")
+          PY
+
+      # ==========================================
+      # SAVE C0 MEASUREMENT AS ARTIFACT
+      # ==========================================
+      - name: Save C0 Measurement
+        uses: actions/upload-artifact@v4
+        with:
+          name: C0-Baseline-Measurement
+          path: c0_results.json
