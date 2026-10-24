@@ -200,4 +200,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: C1-SAST-Measurement
-          path: c1_results.jsons
+          path: c1_results.json
