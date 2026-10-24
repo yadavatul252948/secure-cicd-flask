@@ -46,6 +46,12 @@ WORKFLOWS = {
         "name": "C2 Gitleaks CI/CD",
         "artifact": "C2-Security-Measurement",
         "json_file": "c2_results.json"
+    },
+
+     "C3": {
+        "name": "C3 Dependency CI/CD",
+        "artifact": "C3-Dependency-Measurement",
+        "json_file": "c3_results.json"
     }
 }
 
