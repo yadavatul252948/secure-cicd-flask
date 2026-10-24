@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>CI/CD Security Performance Dashboard</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: #eee;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        .configuration {
+            font-weight: bold;
+        }
+
+        .total {
+            font-weight: bold;
+        }
+
+        .c0 {
+            color: #333;
+        }
+
+        .c1 {
+            color: #0066cc;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <h1>CI/CD Security Performance Dashboard</h1>
+
+    <div class="subtitle">
+
+        Actual measurements collected from GitHub Actions
+
+    </div>
+
+
+    {% if error %}
+
+        <div class="card">
+
+            <p class="error">
+                Error connecting to GitHub:
+            </p>
+
+            <p>
+                {{ error }}
+            </p>
+
+        </div>
+
+    {% else %}
+
+
+        <div class="card">
+
+            <h2>Pipeline Measurements</h2>
+
+            <table>
+
+                <tr>
+
+                    <th>Run</th>
+
+                    <th>Configuration</th>
+
+                    <th>Security Control</th>
+
+                    <th>Status</th>
+
+                    <th>Install</th>
+
+                    <th>Tests</th>
+
+                    <th>Docker Build</th>
+
+                    <th>GHCR Push</th>
+
+                    <th>Total</th>
+
+                </tr>
+
+
+                {% for run in runs %}
+
+                <tr>
+
+                    <td>
+                        #{{ run.run_number }}
+                    </td>
+
+
+                    <td class="configuration
+                        {% if run.configuration == 'C0' %}
+                            c0
+                        {% elif run.configuration == 'C1' %}
+                            c1
+                        {% endif %}
+                    ">
+
+                        {{ run.configuration }}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if run.measurement %}
+
+                            {{ run.measurement.security_control }}
+
+                        {% else %}
+
+                            -
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if run.conclusion == "success" %}
+
+                            <span class="success">
+                                SUCCESS
+                            </span>
+
+                        {% elif run.conclusion == "failure" %}
+
+                            <span class="error">
+                                FAILURE
+                            </span>
+
+                        {% else %}
+
+                            {{ run.status }}
+
+                        {% endif %}
+
+                    </td>
+
+
+                    {% if run.measurement %}
+
+                        <td>
+                            {{ run.measurement.install_time_seconds }} s
+                        </td>
+
+                        <td>
+                            {{ run.measurement.unit_test_time_seconds }} s
+                        </td>
+
+                        <td>
+                            {{ run.measurement.docker_build_time_seconds }} s
+                        </td>
+
+                        <td>
+                            {{ run.measurement.ghcr_push_time_seconds }} s
+                        </td>
+
+                        <td class="total">
+                            {{ run.measurement.total_pipeline_time_seconds }} s
+                        </td>
+
+                    {% else %}
+
+                        <td colspan="5">
+                            Measurement unavailable
+                        </td>
+
+                    {% endif %}
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+
+
+    {% endif %}
+
+
+</body>
+
+</html>
