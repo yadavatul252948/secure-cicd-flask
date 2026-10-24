@@ -1,4 +1,3 @@
-```yaml
 name: C0 Baseline CI/CD
 
 on:
@@ -18,31 +17,23 @@ jobs:
 
     steps:
 
-      # ==========================================
-      # CHECKOUT REPOSITORY
-      # ==========================================
+      # CHECKOUT
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      # ==========================================
       # SETUP PYTHON
-      # ==========================================
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # ==========================================
       # START C0 MEASUREMENT
-      # ==========================================
       - name: Start C0 Measurement
         run: |
           echo "C0 measurement started"
           date +%s.%N > /tmp/c0_pipeline_start
 
-      # ==========================================
       # INSTALL DEPENDENCIES
-      # ==========================================
       - name: Install Dependencies
         run: |
           START=$(date +%s.%N)
@@ -55,9 +46,7 @@ jobs:
           echo "$START" > /tmp/c0_install_start
           echo "$END" > /tmp/c0_install_end
 
-      # ==========================================
       # UNIT TESTS
-      # ==========================================
       - name: Run Unit Tests
         run: |
           START=$(date +%s.%N)
@@ -69,9 +58,7 @@ jobs:
           echo "$START" > /tmp/c0_test_start
           echo "$END" > /tmp/c0_test_end
 
-      # ==========================================
       # DOCKER BUILD
-      # ==========================================
       - name: Build Docker Image
         run: |
           START=$(date +%s.%N)
@@ -84,9 +71,7 @@ jobs:
           echo "$START" > /tmp/c0_docker_start
           echo "$END" > /tmp/c0_docker_end
 
-      # ==========================================
       # GHCR LOGIN
-      # ==========================================
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -94,9 +79,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ==========================================
-      # PUSH DOCKER IMAGE
-      # ==========================================
+      # GHCR PUSH
       - name: Push Docker Image
         run: |
           START=$(date +%s.%N)
@@ -109,9 +92,7 @@ jobs:
           echo "$START" > /tmp/c0_push_start
           echo "$END" > /tmp/c0_push_end
 
-      # ==========================================
-      # DEPLOY TO EC2
-      # ==========================================
+      # EC2 DEPLOYMENT
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.2
         with:
@@ -119,8 +100,6 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            START=$(date +%s.%N)
-
             echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
             docker pull ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
@@ -133,50 +112,14 @@ jobs:
               -p 5000:5000 \
               ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:baseline
 
-            END=$(date +%s.%N)
+            echo "EC2 deployment completed successfully."
 
-            DEPLOY_TIME=$(awk "BEGIN {print $END - $START}")
-
-            echo "C0_DEPLOY_TIME=$DEPLOY_TIME" >> /tmp/c0_deploy_result
-
-            echo "=========================================="
-            echo "       EC2 DEPLOYMENT MEASUREMENT"
-            echo "=========================================="
-            echo "EC2 Deployment Time: ${DEPLOY_TIME} seconds"
-            echo "=========================================="
-
-      # ==========================================
-      # GET EC2 DEPLOYMENT TIME
-      # ==========================================
-      - name: Capture EC2 Deployment Time
-        run: |
-          # The SSH action executes on the EC2 host.
-          # Therefore the deployment duration is calculated
-          # again on the GitHub runner using the SSH action
-          # execution timestamps available from the step.
-
-          START=$(date +%s.%N)
-
-          # Verify that the deployment completed successfully
-          echo "EC2 deployment completed successfully."
-
-          END=$(date +%s.%N)
-
-          # This value represents the runner-side SSH/action
-          # overhead and is kept separate from the measured
-          # pipeline total.
-          echo "Runner SSH overhead: $(awk "BEGIN {print $END - $START}") seconds"
-
-      # ==========================================
       # END C0 MEASUREMENT
-      # ==========================================
       - name: End C0 Measurement
         run: |
           date +%s.%N > /tmp/c0_pipeline_end
 
-      # ==========================================
-      # DISPLAY C0 MEASUREMENTS
-      # ==========================================
+      # DISPLAY MEASUREMENTS
       - name: Display C0 Baseline Measurements
         run: |
           python - <<'PY'
@@ -204,9 +147,7 @@ jobs:
           print("")
           PY
 
-      # ==========================================
-      # CREATE C0 MEASUREMENT DATA
-      # ==========================================
+      # CREATE JSON
       - name: Create C0 Measurement Data
         run: |
           python - <<'PY'
@@ -242,9 +183,7 @@ jobs:
           print("==========================================")
           PY
 
-      # ==========================================
-      # SAVE C0 MEASUREMENT AS ARTIFACT
-      # ==========================================
+      # SAVE MEASUREMENT ARTIFACT
       - name: Save C0 Measurement
         uses: actions/upload-artifact@v4
         with:
