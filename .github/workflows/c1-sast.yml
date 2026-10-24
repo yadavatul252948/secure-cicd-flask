@@ -1,0 +1,203 @@
+name: C1 SAST CI/CD
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  secure:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # CHECKOUT
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      # SETUP PYTHON
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # START C1 MEASUREMENT
+      - name: Start C1 Measurement
+        run: |
+          echo "C1 measurement started"
+          date +%s.%N > /tmp/c1_pipeline_start
+
+      # INSTALL DEPENDENCIES
+      - name: Install Dependencies
+        run: |
+          START=$(date +%s.%N)
+
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+          END=$(date +%s.%N)
+
+          echo "$START" > /tmp/c1_install_start
+          echo "$END" > /tmp/c1_install_end
+
+      # UNIT TESTS
+      - name: Run Unit Tests
+        run: |
+          START=$(date +%s.%N)
+
+          pytest
+
+          END=$(date +%s.%N)
+
+          echo "$START" > /tmp/c1_test_start
+          echo "$END" > /tmp/c1_test_end
+
+      # SONARQUBE SAST
+      - name: SonarQube SAST
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=yadavatul252948
+            -Dsonar.projectKey=yadavatul252948_secure-cicd-flask
+
+      # DOCKER BUILD
+      - name: Build Docker Image
+        run: |
+          START=$(date +%s.%N)
+
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c1-sast .
+
+          END=$(date +%s.%N)
+
+          echo "$START" > /tmp/c1_docker_start
+          echo "$END" > /tmp/c1_docker_end
+
+      # GHCR LOGIN
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # GHCR PUSH
+      - name: Push Docker Image
+        run: |
+          START=$(date +%s.%N)
+
+          docker push \
+            ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c1-sast
+
+          END=$(date +%s.%N)
+
+          echo "$START" > /tmp/c1_push_start
+          echo "$END" > /tmp/c1_push_end
+
+      # EC2 DEPLOYMENT
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+            docker pull ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c1-sast
+
+            docker stop secure-cicd-flask || true
+            docker rm secure-cicd-flask || true
+
+            docker run -d \
+              --name secure-cicd-flask \
+              -p 5000:5000 \
+              ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c1-sast
+
+            echo "C1 EC2 deployment completed successfully."
+
+      # END C1 MEASUREMENT
+      - name: End C1 Measurement
+        run: |
+          date +%s.%N > /tmp/c1_pipeline_end
+
+      # DISPLAY MEASUREMENTS
+      - name: Display C1 Measurements
+        run: |
+          python - <<'PY'
+          def read(file):
+              with open(file) as f:
+                  return float(f.read().strip())
+
+          install_time = read("/tmp/c1_install_end") - read("/tmp/c1_install_start")
+          test_time = read("/tmp/c1_test_end") - read("/tmp/c1_test_start")
+          docker_time = read("/tmp/c1_docker_end") - read("/tmp/c1_docker_start")
+          push_time = read("/tmp/c1_push_end") - read("/tmp/c1_push_start")
+          total_time = read("/tmp/c1_pipeline_end") - read("/tmp/c1_pipeline_start")
+
+          print("")
+          print("================================================")
+          print("          C1 SAST CI/CD MEASUREMENTS")
+          print("================================================")
+          print(f"Install Dependencies : {install_time:.3f} seconds")
+          print(f"Unit Tests           : {test_time:.3f} seconds")
+          print(f"Docker Build         : {docker_time:.3f} seconds")
+          print(f"GHCR Push            : {push_time:.3f} seconds")
+          print(f"Total Pipeline Time  : {total_time:.3f} seconds")
+          print("Security Control     : SonarQube SAST")
+          print("Status               : SUCCESS")
+          print("================================================")
+          print("")
+          PY
+
+      # CREATE JSON
+      - name: Create C1 Measurement Data
+        run: |
+          python - <<'PY'
+          import json
+
+          def read(file):
+              with open(file) as f:
+                  return float(f.read().strip())
+
+          install_time = read("/tmp/c1_install_end") - read("/tmp/c1_install_start")
+          test_time = read("/tmp/c1_test_end") - read("/tmp/c1_test_start")
+          docker_time = read("/tmp/c1_docker_end") - read("/tmp/c1_docker_start")
+          push_time = read("/tmp/c1_push_end") - read("/tmp/c1_push_start")
+          total_time = read("/tmp/c1_pipeline_end") - read("/tmp/c1_pipeline_start")
+
+          results = {
+              "configuration": "C1",
+              "security_control": "SonarQube SAST",
+              "install_time_seconds": round(install_time, 3),
+              "unit_test_time_seconds": round(test_time, 3),
+              "docker_build_time_seconds": round(docker_time, 3),
+              "ghcr_push_time_seconds": round(push_time, 3),
+              "total_pipeline_time_seconds": round(total_time, 3),
+              "status": "SUCCESS"
+          }
+
+          with open("c1_results.json", "w") as f:
+              json.dump(results, f, indent=2)
+
+          print("==========================================")
+          print("       C1 SAST MEASUREMENTS")
+          print("==========================================")
+          print(json.dumps(results, indent=2))
+          print("==========================================")
+          PY
+
+      # SAVE C1 MEASUREMENT
+      - name: Save C1 Measurement
+        uses: actions/upload-artifact@v4
+        with:
+          name: C1-SAST-Measurement
+          path: c1_results.jsons
