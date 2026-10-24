@@ -1,0 +1,251 @@
+name: C3 Dependency CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+
+  c3-dependency:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # --------------------------------------------------
+      # Checkout
+      # --------------------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+
+      # --------------------------------------------------
+      # Setup Python
+      # --------------------------------------------------
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+
+      # --------------------------------------------------
+      # Start measurement
+      # --------------------------------------------------
+
+      - name: Start C3 measurement
+        run: |
+          date +%s.%N > /tmp/c3_pipeline_start
+
+
+      # --------------------------------------------------
+      # Install dependencies
+      # --------------------------------------------------
+
+      - name: Install dependencies
+        run: |
+          START=$(date +%s.%N)
+
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+          END=$(date +%s.%N)
+
+          echo "INSTALL_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
+
+
+      # --------------------------------------------------
+      # Unit tests
+      # --------------------------------------------------
+
+      - name: Run unit tests
+        run: |
+          START=$(date +%s.%N)
+
+          pytest
+
+          END=$(date +%s.%N)
+
+          echo "TEST_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
+
+
+      # --------------------------------------------------
+      # SonarQube SAST
+      # --------------------------------------------------
+
+      - name: SonarQube SAST
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=yadavatul252948
+            -Dsonar.projectKey=yadavatul252948_secure-cicd-flask
+
+
+      # --------------------------------------------------
+      # Gitleaks Secret Detection
+      # --------------------------------------------------
+
+      - name: Gitleaks Secret Detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      # --------------------------------------------------
+      # Dependency Vulnerability Scan
+      # --------------------------------------------------
+
+      - name: pip-audit Dependency Vulnerability Scan
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+
+
+      # --------------------------------------------------
+      # Docker build
+      # --------------------------------------------------
+
+      - name: Build Docker image
+        run: |
+          START=$(date +%s.%N)
+
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c3-dependency .
+
+          END=$(date +%s.%N)
+
+          echo "DOCKER_BUILD_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
+
+
+      # --------------------------------------------------
+      # Login to GHCR
+      # --------------------------------------------------
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+          docker login ghcr.io \
+          -u "${{ github.actor }}" \
+          --password-stdin
+
+
+      # --------------------------------------------------
+      # Push Docker image
+      # --------------------------------------------------
+
+      - name: Push Docker image
+        run: |
+          START=$(date +%s.%N)
+
+          docker push \
+            ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c3-dependency
+
+          END=$(date +%s.%N)
+
+          echo "GHCR_PUSH_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
+
+
+      # --------------------------------------------------
+      # Deploy to AWS EC2
+      # --------------------------------------------------
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker login ghcr.io \
+              -u "${{ github.actor }}" \
+              -p "${{ secrets.GITHUB_TOKEN }}"
+
+            docker pull \
+              ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c3-dependency
+
+            docker stop secure-cicd-flask-c3 || true
+            docker rm secure-cicd-flask-c3 || true
+
+            docker run -d \
+              --name secure-cicd-flask-c3 \
+              -p 80:5000 \
+              ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c3-dependency
+
+
+      # --------------------------------------------------
+      # End measurement
+      # --------------------------------------------------
+
+      - name: End C3 measurement
+        run: |
+
+          END=$(date +%s.%N)
+
+          START=$(cat /tmp/c3_pipeline_start)
+
+          TOTAL=$(python -c "print($END - $START)")
+
+          echo "TOTAL_TIME=$TOTAL" >> $GITHUB_ENV
+
+
+      # --------------------------------------------------
+      # Display measurements
+      # --------------------------------------------------
+
+      - name: Display C3 measurements
+        run: |
+
+          echo "======================================"
+          echo "C3 Dependency CI/CD Measurements"
+          echo "======================================"
+
+          echo "Install Time      : $INSTALL_TIME seconds"
+          echo "Unit Test Time    : $TEST_TIME seconds"
+          echo "Docker Build Time : $DOCKER_BUILD_TIME seconds"
+          echo "GHCR Push Time    : $GHCR_PUSH_TIME seconds"
+          echo "Total Pipeline    : $TOTAL_TIME seconds"
+
+          echo "======================================"
+
+
+      # --------------------------------------------------
+      # Create measurement JSON
+      # --------------------------------------------------
+
+      - name: Create C3 measurement JSON
+        run: |
+
+          cat > c3_results.json <<EOF
+          {
+            "configuration": "C3",
+            "security_control": "SonarQube SAST + Gitleaks Secret Detection + pip-audit Dependency Vulnerability Scan",
+            "install_time_seconds": $INSTALL_TIME,
+            "unit_test_time_seconds": $TEST_TIME,
+            "docker_build_time_seconds": $DOCKER_BUILD_TIME,
+            "ghcr_push_time_seconds": $GHCR_PUSH_TIME,
+            "total_pipeline_time_seconds": $TOTAL_TIME,
+            "status": "SUCCESS"
+          }
+          EOF
+
+          cat c3_results.json
+
+
+      # --------------------------------------------------
+      # Upload measurement artifact
+      # --------------------------------------------------
+
+      - name: Upload C3 measurement artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: C3-Dependency-Measurement
+          path: c3_results.json
