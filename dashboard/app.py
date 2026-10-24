@@ -52,6 +52,12 @@ WORKFLOWS = {
         "name": "C3 Dependency CI/CD",
         "artifact": "C3-Dependency-Measurement",
         "json_file": "c3_results.json"
+    },
+     
+     "C4": {
+        "name": "C4 Trivy CI/CD",
+        "artifact": "C4-Trivy-Measurement",
+        "json_file": "c4_results.json"
     }
 }
 
