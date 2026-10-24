@@ -1,0 +1,182 @@
+name: C4 Trivy CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+
+  c4-trivy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Start C4 measurement
+        run: |
+          date +%s.%N > /tmp/c4_pipeline_start
+
+      - name: Install dependencies
+        run: |
+          START=$(date +%s.%N)
+
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+          END=$(date +%s.%N)
+
+          echo "INSTALL_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
+
+      - name: Run unit tests
+        run: |
+          START=$(date +%s.%N)
+
+          pytest
+
+          END=$(date +%s.%N)
+
+          echo "TEST_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
+
+      - name: SonarQube SAST
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=yadavatul252948
+            -Dsonar.projectKey=yadavatul252948_secure-cicd-flask
+
+      - name: Gitleaks Secret Detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: pip-audit Dependency Vulnerability Scan
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+
+      - name: Build Docker image
+        run: |
+          START=$(date +%s.%N)
+
+          docker build \
+            -t ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c4-trivy .
+
+          END=$(date +%s.%N)
+
+          echo "DOCKER_BUILD_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
+
+      - name: Trivy Container Vulnerability Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c4-trivy
+          format: table
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+          docker login ghcr.io \
+          -u "${{ github.actor }}" \
+          --password-stdin
+
+      - name: Push Docker image
+        run: |
+          START=$(date +%s.%N)
+
+          docker push \
+            ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c4-trivy
+
+          END=$(date +%s.%N)
+
+          echo "GHCR_PUSH_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker login ghcr.io \
+              -u "${{ github.actor }}" \
+              -p "${{ secrets.GITHUB_TOKEN }}"
+
+            docker pull \
+              ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c4-trivy
+
+            docker stop secure-cicd-flask-c4 || true
+            docker rm secure-cicd-flask-c4 || true
+
+            docker run -d \
+              --name secure-cicd-flask-c4 \
+              -p 8084:5000 \
+              ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c4-trivy
+
+      - name: End C4 measurement
+        run: |
+
+          END=$(date +%s.%N)
+
+          START=$(cat /tmp/c4_pipeline_start)
+
+          TOTAL=$(python -c "print($END - $START)")
+
+          echo "TOTAL_TIME=$TOTAL" >> $GITHUB_ENV
+
+      - name: Display C4 measurements
+        run: |
+
+          echo "======================================"
+          echo "C4 Trivy CI/CD Measurements"
+          echo "======================================"
+
+          echo "Install Time      : $INSTALL_TIME seconds"
+          echo "Unit Test Time    : $TEST_TIME seconds"
+          echo "Docker Build Time : $DOCKER_BUILD_TIME seconds"
+          echo "GHCR Push Time    : $GHCR_PUSH_TIME seconds"
+          echo "Total Pipeline    : $TOTAL_TIME seconds"
+
+          echo "======================================"
+
+      - name: Create C4 measurement JSON
+        run: |
+
+          cat > c4_results.json <<EOF
+          {
+            "configuration": "C4",
+            "security_control": "SonarQube SAST + Gitleaks Secret Detection + pip-audit Dependency Vulnerability Scan + Trivy Container Vulnerability Scan",
+            "install_time_seconds": $INSTALL_TIME,
+            "unit_test_time_seconds": $TEST_TIME,
+            "docker_build_time_seconds": $DOCKER_BUILD_TIME,
+            "ghcr_push_time_seconds": $GHCR_PUSH_TIME,
+            "total_pipeline_time_seconds": $TOTAL_TIME,
+            "status": "SUCCESS"
+          }
+          EOF
+
+          cat c4_results.json
+
+      - name: Upload C4 measurement artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: C4-Trivy-Measurement
+          path: c4_results.json
