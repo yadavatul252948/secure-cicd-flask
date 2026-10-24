@@ -82,7 +82,7 @@ jobs:
           echo "DOCKER_BUILD_TIME=$(python -c "print($END - $START)")" >> $GITHUB_ENV
 
       - name: Trivy Container Vulnerability Scan
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/secure-cicd-flask:c4-trivy
           format: table
