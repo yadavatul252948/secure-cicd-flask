@@ -12,69 +12,410 @@
 
     <style>
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background: #f5f5f5;
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
         }
 
-        h1 {
-            margin-bottom: 5px;
+        /* =========================
+           HEADER
+        ========================= */
+
+        .header {
+            background: #0f2747;
+            color: white;
+            padding: 32px 45px;
         }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
+        .header-content {
+            max-width: 1500px;
+            margin: auto;
         }
 
-        .card {
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .header p {
+            margin: 8px 0 0;
+            color: #cbd8e8;
+            font-size: 15px;
+        }
+
+        .research-label {
+            display: inline-block;
+            margin-top: 18px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #1d4f82;
+            color: #e8f1fb;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* =========================
+           MAIN CONTAINER
+        ========================= */
+
+        .container {
+            max-width: 1500px;
+            margin: 30px auto;
+            padding: 0 30px;
+        }
+
+        /* =========================
+           SUMMARY CARDS
+        ========================= */
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .summary-card {
             background: white;
+            border: 1px solid #e4e9f0;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 3px 12px rgba(15, 39, 71, 0.06);
+        }
+
+        .summary-title {
+            font-size: 13px;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-value {
+            margin-top: 8px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f2747;
+        }
+
+        .summary-description {
+            margin-top: 5px;
+            color: #8a94a3;
+            font-size: 12px;
+        }
+
+        /* =========================
+           SECTION
+        ========================= */
+
+        .section {
+            background: white;
+            border: 1px solid #e4e9f0;
+            border-radius: 14px;
             padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 28px;
+            box-shadow: 0 3px 12px rgba(15, 39, 71, 0.05);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            margin: 0;
+            font-size: 20px;
+            color: #0f2747;
+        }
+
+        .section-description {
+            margin: 5px 0 0;
+            color: #7b8491;
+            font-size: 13px;
+        }
+
+        /* =========================
+           CONFIGURATION PIPELINE
+        ========================= */
+
+        .configuration-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .config-box {
+            flex: 1;
+            min-height: 115px;
+            border: 1px solid #e1e7ef;
+            border-radius: 12px;
+            padding: 18px;
+            background: #f9fbfd;
+            position: relative;
+        }
+
+        .config-name {
+            font-size: 21px;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
+
+        .config-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .config-description {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #7b8491;
+            line-height: 1.4;
+        }
+
+        .arrow {
+            color: #9aa6b2;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .config-c0 .config-name {
+            color: #374151;
+        }
+
+        .config-c1 .config-name {
+            color: #2563eb;
+        }
+
+        .config-c2 .config-name {
+            color: #7c3aed;
+        }
+
+        .config-c3 .config-name {
+            color: #d97706;
+        }
+
+        .config-c4 .config-name {
+            color: #059669;
+        }
+
+        /* =========================
+           TABLE
+        ========================= */
+
+        .table-container {
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 1050px;
         }
 
         th {
-            background: #eee;
+            background: #f3f6fa;
+            color: #536174;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-weight: 700;
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dfe5ec;
+            white-space: nowrap;
         }
 
-        .success {
-            color: green;
-            font-weight: bold;
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #edf0f4;
+            font-size: 13px;
+            vertical-align: middle;
         }
 
-        .error {
-            color: red;
-            font-weight: bold;
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .run-number {
+            color: #64748b;
+            font-weight: 600;
         }
 
         .configuration {
-            font-weight: bold;
-        }
-
-        .total {
-            font-weight: bold;
+            font-weight: 800;
+            font-size: 14px;
         }
 
         .c0 {
-            color: #333;
+            color: #374151;
         }
 
         .c1 {
-            color: #0066cc;
+            color: #2563eb;
+        }
+
+        .c2 {
+            color: #7c3aed;
+        }
+
+        .c3 {
+            color: #d97706;
+        }
+
+        .c4 {
+            color: #059669;
+        }
+
+        /* =========================
+           SECURITY CONTROL
+        ========================= */
+
+        .security-control {
+            color: #4b5563;
+            line-height: 1.4;
+            max-width: 250px;
+            font-weight: 600;
+        }
+
+        /* =========================
+           STATUS
+        ========================= */
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .success {
+            color: #047857;
+            background: #d1fae5;
+        }
+
+        .error {
+            color: #b91c1c;
+            background: #fee2e2;
+        }
+
+        .running {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        /* =========================
+           TIME VALUES
+        ========================= */
+
+        .time {
+            font-family: Consolas, "Courier New", monospace;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .total {
+            font-weight: 800;
+            color: #0f2747;
+            font-family: Consolas, "Courier New", monospace;
+        }
+
+        /* =========================
+           EMPTY / ERROR
+        ========================= */
+
+        .error-card {
+            border-left: 5px solid #dc2626;
+        }
+
+        .error-title {
+            color: #b91c1c;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 35px;
+            color: #8a94a3;
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+
+        .footer {
+            text-align: center;
+            color: #8a94a3;
+            font-size: 12px;
+            padding: 10px 0 30px;
+        }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
+
+        @media (max-width: 1100px) {
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .configuration-flow {
+                flex-wrap: wrap;
+            }
+
+            .config-box {
+                min-width: 180px;
+            }
+
+            .arrow {
+                display: none;
+            }
+
+        }
+
+        @media (max-width: 650px) {
+
+            .header {
+                padding: 25px 20px;
+            }
+
+            .header h1 {
+                font-size: 23px;
+            }
+
+            .container {
+                padding: 0 15px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section {
+                padding: 18px;
+            }
+
         }
 
     </style>
@@ -84,37 +425,291 @@
 
 <body>
 
-    <h1>CI/CD Security Performance Dashboard</h1>
 
-    <div class="subtitle">
+<!-- =========================
+     HEADER
+========================= -->
 
-        Actual measurements collected from GitHub Actions
+<header class="header">
+
+    <div class="header-content">
+
+        <h1>
+            CI/CD Security &amp; Performance Dashboard
+        </h1>
+
+        <p>
+            Quantitative Analysis of Security Effectiveness and Performance Overhead in Cloud-Based CI/CD Pipelines
+        </p>
+
+        <span class="research-label">
+            MSc IT • Cloud Computing • Research Experiment
+        </span>
+
+    </div>
+
+</header>
+
+
+<div class="container">
+
+
+{% if error %}
+
+    <div class="section error-card">
+
+        <div class="error-title">
+            GitHub Connection Error
+        </div>
+
+        <div>
+            {{ error }}
+        </div>
+
+    </div>
+
+{% else %}
+
+
+<!-- =========================
+     SUMMARY
+========================= -->
+
+<div class="summary-grid">
+
+    <div class="summary-card">
+
+        <div class="summary-title">
+            Configurations
+        </div>
+
+        <div class="summary-value">
+            5
+        </div>
+
+        <div class="summary-description">
+            C0 through C4
+        </div>
 
     </div>
 
 
-    {% if error %}
+    <div class="summary-card">
 
-        <div class="card">
+        <div class="summary-title">
+            Security Controls
+        </div>
 
-            <p class="error">
-                Error connecting to GitHub:
-            </p>
+        <div class="summary-value">
+            4
+        </div>
 
-            <p>
-                {{ error }}
+        <div class="summary-description">
+            SAST, secrets, dependencies &amp; containers
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <div class="summary-title">
+            Measurement Source
+        </div>
+
+        <div class="summary-value">
+            CI/CD
+        </div>
+
+        <div class="summary-description">
+            GitHub Actions workflow measurements
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <div class="summary-title">
+            Baseline
+        </div>
+
+        <div class="summary-value">
+            C0
+        </div>
+
+        <div class="summary-description">
+            Pipeline without security controls
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     CONFIGURATION PROGRESSION
+========================= -->
+
+<div class="section">
+
+    <div class="section-header">
+
+        <div>
+
+            <h2 class="section-title">
+                Security Configuration Progression
+            </h2>
+
+            <p class="section-description">
+                Progressive addition of automated security controls to the CI/CD pipeline
             </p>
 
         </div>
 
-    {% else %}
+    </div>
 
 
-        <div class="card">
+    <div class="configuration-flow">
 
-            <h2>Pipeline Measurements</h2>
 
-            <table>
+        <div class="config-box config-c0">
+
+            <div class="config-name">
+                C0
+            </div>
+
+            <div class="config-title">
+                Baseline
+            </div>
+
+            <div class="config-description">
+                No security controls
+            </div>
+
+        </div>
+
+
+        <div class="arrow">
+            →
+        </div>
+
+
+        <div class="config-box config-c1">
+
+            <div class="config-name">
+                C1
+            </div>
+
+            <div class="config-title">
+                SAST
+            </div>
+
+            <div class="config-description">
+                SonarQube static analysis
+            </div>
+
+        </div>
+
+
+        <div class="arrow">
+            →
+        </div>
+
+
+        <div class="config-box config-c2">
+
+            <div class="config-name">
+                C2
+            </div>
+
+            <div class="config-title">
+                Secret Detection
+            </div>
+
+            <div class="config-description">
+                Gitleaks secret scanning
+            </div>
+
+        </div>
+
+
+        <div class="arrow">
+            →
+        </div>
+
+
+        <div class="config-box config-c3">
+
+            <div class="config-name">
+                C3
+            </div>
+
+            <div class="config-title">
+                Dependency Security
+            </div>
+
+            <div class="config-description">
+                pip-audit vulnerability scanning
+            </div>
+
+        </div>
+
+
+        <div class="arrow">
+            →
+        </div>
+
+
+        <div class="config-box config-c4">
+
+            <div class="config-name">
+                C4
+            </div>
+
+            <div class="config-title">
+                Container Security
+            </div>
+
+            <div class="config-description">
+                Trivy image vulnerability scanning
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     MEASUREMENTS
+========================= -->
+
+<div class="section">
+
+    <div class="section-header">
+
+        <div>
+
+            <h2 class="section-title">
+                Pipeline Measurements
+            </h2>
+
+            <p class="section-description">
+                Actual execution measurements collected automatically from GitHub Actions
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
 
                 <tr>
 
@@ -138,107 +733,203 @@
 
                 </tr>
 
-
-                {% for run in runs %}
-
-                <tr>
-
-                    <td>
-                        #{{ run.run_number }}
-                    </td>
+            </thead>
 
 
-                    <td class="configuration
+            <tbody>
+
+
+            {% for run in runs %}
+
+            <tr>
+
+
+                <td class="run-number">
+                    #{{ run.run_number }}
+                </td>
+
+
+                <td>
+
+                    <span class="configuration
+
                         {% if run.configuration == 'C0' %}
                             c0
+
                         {% elif run.configuration == 'C1' %}
                             c1
+
+                        {% elif run.configuration == 'C2' %}
+                            c2
+
+                        {% elif run.configuration == 'C3' %}
+                            c3
+
+                        {% elif run.configuration == 'C4' %}
+                            c4
+
                         {% endif %}
+
                     ">
 
                         {{ run.configuration }}
 
-                    </td>
+                    </span>
+
+                </td>
 
 
-                    <td>
+                <!-- =========================
+                     SHORT SECURITY CONTROL
+                ========================= -->
 
-                        {% if run.measurement %}
+                <td class="security-control">
 
-                            {{ run.measurement.security_control }}
+                    {% if run.configuration == "C0" %}
 
-                        {% else %}
+                        None
 
-                            -
+                    {% elif run.configuration == "C1" %}
 
-                        {% endif %}
+                        SAST
 
-                    </td>
+                    {% elif run.configuration == "C2" %}
 
+                        SAST + Gitleaks
 
-                    <td>
+                    {% elif run.configuration == "C3" %}
 
-                        {% if run.conclusion == "success" %}
+                        SAST + Gitleaks + pip-audit
 
-                            <span class="success">
-                                SUCCESS
-                            </span>
+                    {% elif run.configuration == "C4" %}
 
-                        {% elif run.conclusion == "failure" %}
-
-                            <span class="error">
-                                FAILURE
-                            </span>
-
-                        {% else %}
-
-                            {{ run.status }}
-
-                        {% endif %}
-
-                    </td>
-
-
-                    {% if run.measurement %}
-
-                        <td>
-                            {{ run.measurement.install_time_seconds }} s
-                        </td>
-
-                        <td>
-                            {{ run.measurement.unit_test_time_seconds }} s
-                        </td>
-
-                        <td>
-                            {{ run.measurement.docker_build_time_seconds }} s
-                        </td>
-
-                        <td>
-                            {{ run.measurement.ghcr_push_time_seconds }} s
-                        </td>
-
-                        <td class="total">
-                            {{ run.measurement.total_pipeline_time_seconds }} s
-                        </td>
+                        SAST + Gitleaks + pip-audit + Trivy
 
                     {% else %}
 
-                        <td colspan="5">
-                            Measurement unavailable
-                        </td>
+                        —
 
                     {% endif %}
 
-                </tr>
-
-                {% endfor %}
-
-            </table>
-
-        </div>
+                </td>
 
 
-    {% endif %}
+                <!-- =========================
+                     STATUS
+                ========================= -->
+
+                <td>
+
+                    {% if run.conclusion == "success" %}
+
+                        <span class="status-badge success">
+                            SUCCESS
+                        </span>
+
+                    {% elif run.conclusion == "failure" %}
+
+                        <span class="status-badge error">
+                            FAILURE
+                        </span>
+
+                    {% elif run.status == "in_progress" %}
+
+                        <span class="status-badge running">
+                            RUNNING
+                        </span>
+
+                    {% else %}
+
+                        {{ run.status }}
+
+                    {% endif %}
+
+                </td>
+
+
+                <!-- =========================
+                     MEASUREMENTS
+                ========================= -->
+
+                {% if run.measurement %}
+
+                    <td class="time">
+                        {{ "%.2f"|format(run.measurement.install_time_seconds) }} s
+                    </td>
+
+                    <td class="time">
+                        {{ "%.2f"|format(run.measurement.unit_test_time_seconds) }} s
+                    </td>
+
+                    <td class="time">
+                        {{ "%.2f"|format(run.measurement.docker_build_time_seconds) }} s
+                    </td>
+
+                    <td class="time">
+                        {{ "%.2f"|format(run.measurement.ghcr_push_time_seconds) }} s
+                    </td>
+
+                    <td class="total">
+                        {{ "%.2f"|format(run.measurement.total_pipeline_time_seconds) }} s
+                    </td>
+
+                {% else %}
+
+                    <td colspan="5" class="no-data">
+                        Measurement unavailable
+                    </td>
+
+                {% endif %}
+
+
+            </tr>
+
+            {% endfor %}
+
+
+            {% if not runs %}
+
+            <tr>
+
+                <td colspan="9" class="no-data">
+                    No pipeline measurements available.
+                </td>
+
+            </tr>
+
+            {% endif %}
+
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+{% endif %}
+
+
+<!-- =========================
+     FOOTER
+========================= -->
+
+<div class="footer">
+
+    Cloud-Based CI/CD Security Experiment
+    &nbsp;•&nbsp;
+    GitHub Actions
+    &nbsp;•&nbsp;
+    Docker
+    &nbsp;•&nbsp;
+    AWS EC2
+
+</div>
+
+
+</div>
 
 
 </body>
